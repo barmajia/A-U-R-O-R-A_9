@@ -51,7 +51,7 @@ class SupabaseConfig {
   /// If this is empty, check your configuration setup.
   static const String url = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://ofovfxsfazlwvcakpuer.supabase.co',
+    defaultValue: '',
   );
 
   /// Supabase anonymous/public key
@@ -64,8 +64,7 @@ class SupabaseConfig {
   /// This is the public anon key (not the service role key).
   static const String anonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb3ZmeHNmYXpsd3ZjYWtwdWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMjY0MDcsImV4cCI6MjA4NzcwMjQwN30.QYx8-c9IiSMpuHeikKz25MKO5o6g112AKj4Tnr4aWzI',
+    defaultValue: '',
   );
 
   // ============================================================================

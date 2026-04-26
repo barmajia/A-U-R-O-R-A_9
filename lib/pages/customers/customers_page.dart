@@ -1,6 +1,7 @@
 import 'package:aurora/l10n/app_localizations.dart';
 import 'package:aurora/models/customer.dart';
 import 'package:aurora/pages/customers/customer_details_screen.dart';
+import 'package:aurora/pages/deals/quick_deal_page.dart';
 import 'package:aurora/services/supabase.dart';
 import 'package:aurora/widgets/drawer.dart';
 import 'package:flutter/material.dart';
@@ -107,11 +108,19 @@ class _CustomersPageState extends State<CustomersPage> {
                     Expanded(child: _buildCustomerList(colorScheme)),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToAddCustomer,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const QuickDealPage()),
+          ).then((result) {
+            if (result == true) _loadCustomers();
+          });
+        },
         backgroundColor: colorScheme.primary,
-        child: const Icon(Icons.person_add, color: Colors.white),
-        tooltip: 'Add Customer',
+        icon: const Icon(Icons.shopping_cart_checkout, color: Colors.white),
+        label: const Text('Create Deal', style: TextStyle(color: Colors.white)),
+        tooltip: 'Create Quick Deal',
       ),
     );
   }
@@ -123,6 +132,11 @@ class _CustomersPageState extends State<CustomersPage> {
       backgroundColor: colorScheme.primary,
       foregroundColor: colorScheme.onPrimary,
       actions: [
+        IconButton(
+          icon: const Icon(Icons.person_add),
+          onPressed: _navigateToAddCustomer,
+          tooltip: 'Add Customer',
+        ),
         IconButton(
           icon: const Icon(Icons.refresh),
           onPressed: _loadCustomers,

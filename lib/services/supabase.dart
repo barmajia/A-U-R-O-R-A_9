@@ -2252,6 +2252,53 @@ class SupabaseProvider extends ChangeNotifier {
     }
   }
 
+  /// Add a sale with multiple items for a customer
+  Future<AuthResult> addSale({
+    required String customerId,
+    required List<Map<String, dynamic>> items,
+    required double totalAmount,
+    required String paymentMethod,
+    String? notes,
+  }) async {
+    if (!isLoggedIn) {
+      return _failure('You must be logged in');
+    }
+
+    try {
+      final sellerId = currentUser!.id;
+
+      // Insert each item as a separate sale record
+      for (final item in items) {
+        final itemName = item['productName'] as String? ?? 'Unknown Product';
+        final quantity = item['quantity'] as int;
+        final unitPrice = (item['unitPrice'] as num).toDouble();
+        final subtotal = (item['subtotal'] as num).toDouble();
+
+        await _client.from('sales').insert({
+          'seller_id': sellerId,
+          'customer_id': customerId,
+          'product_name': itemName, // Store product name directly
+          'quantity': quantity,
+          'unit_price': unitPrice,
+          'total_price': subtotal,
+          'discount': 0,
+          'payment_method': paymentMethod,
+          'payment_status': 'completed',
+          'notes': notes,
+        });
+      }
+
+      // Invalidate analytics cache
+      await _cache.remove(_getUserCacheKey('cache_analytics'));
+      await _cache.remove(_getUserCacheKey('cache_kpis'));
+
+      return _success('Sale with ${items.length} item(s) recorded successfully');
+    } catch (e) {
+      _errorHandler.handleError(e, 'Add Sale');
+      return _failure('Failed to record sale: $e');
+    }
+  }
+
   /// Get sales for current seller
   Future<List<Sale>> getSales({
     DateTime? startDate,

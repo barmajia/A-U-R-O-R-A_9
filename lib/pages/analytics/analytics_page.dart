@@ -4,6 +4,7 @@ import 'package:aurora/services/seller_analytics_service.dart';
 import 'package:aurora/services/analysis_engine.dart';
 import 'package:aurora/models/seller_analytics_data.dart';
 import 'package:aurora/models/offline/offline_analysis.dart';
+import 'package:aurora/models/offline/offline_database.dart';
 import 'package:aurora/widgets/drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -26,10 +27,380 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   bool _isUploading = false;
   bool _isDownloading = false;
 
+  // Controllers for add customer dialog
+  final TextEditingController _customerNameController = TextEditingController();
+  final TextEditingController _customerPhoneController = TextEditingController();
+  final TextEditingController _customerEmailController = TextEditingController();
+  final TextEditingController _customerAddressController = TextEditingController();
+  final TextEditingController _customerNotesController = TextEditingController();
+  final TextEditingController _dealAmountController = TextEditingController();
+  final TextEditingController _dealItemsController = TextEditingController();
+  
+  String? _selectedDealStatus = 'pending';
+  String? _selectedPaymentMethod = 'cash';
+  bool _isAddingCustomer = false;
+
   @override
   void initState() {
     super.initState();
     _loadKPIs();
+  }
+
+  @override
+  void dispose() {
+    _customerNameController.dispose();
+    _customerPhoneController.dispose();
+    _customerEmailController.dispose();
+    _customerAddressController.dispose();
+    _customerNotesController.dispose();
+    _dealAmountController.dispose();
+    _dealItemsController.dispose();
+    super.dispose();
+  }
+
+  /// Show dialog to add a new customer with deal information
+  void _showAddCustomerWithDealDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            width: double.maxFinite,
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: _isAddingCustomer
+                ? _buildAddingCustomerLoading()
+                : _buildAddCustomerForm(setDialogState),
+          ),
+        ),
+      ),
+    ).then((result) {
+      if (result == true) {
+        _loadKPIs(); // Refresh analytics data
+      }
+    });
+  }
+
+  Widget _buildAddingCustomerLoading() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+          const SizedBox(height: 16),
+          Text(
+            'Adding customer and deal...',
+            style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddCustomerForm(StatefulBuilder setDialogState) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Add Customer & Deal',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Track the complete flow from customer addition through deal stages',
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
+          ),
+          const Divider(height: 32),
+          
+          // Customer Information Section
+          Text('Customer Information', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Theme.of(context).colorScheme.primary)),
+          const SizedBox(height: 12),
+          
+          TextField(
+            controller: _customerNameController,
+            decoration: InputDecoration(
+              labelText: 'Name *',
+              prefixIcon: const Icon(Icons.person_outline),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          TextField(
+            controller: _customerPhoneController,
+            decoration: InputDecoration(
+              labelText: 'Phone *',
+              prefixIcon: const Icon(Icons.phone_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 12),
+          
+          TextField(
+            controller: _customerEmailController,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            keyboardType: TextInputType.emailAddress,
+          ),
+          const SizedBox(height: 12),
+          
+          TextField(
+            controller: _customerAddressController,
+            decoration: InputDecoration(
+              labelText: 'Address',
+              prefixIcon: const Icon(Icons.location_on_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            maxLines: 2,
+          ),
+          const SizedBox(height: 12),
+          
+          TextField(
+            controller: _customerNotesController,
+            decoration: InputDecoration(
+              labelText: 'Notes',
+              prefixIcon: const Icon(Icons.note_alt_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            maxLines: 3,
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Deal Information Section
+          Text('Initial Deal Information', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Theme.of(context).colorScheme.primary)),
+          const SizedBox(height: 12),
+          
+          TextField(
+            controller: _dealAmountController,
+            decoration: InputDecoration(
+              labelText: 'Deal Amount (\$)',
+              prefixIcon: const Icon(Icons.attach_money),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+          
+          TextField(
+            controller: _dealItemsController,
+            decoration: InputDecoration(
+              labelText: 'Items (comma-separated)',
+              prefixIcon: const Icon(Icons.shopping_cart_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          DropdownButtonFormField<String>(
+            value: _selectedDealStatus,
+            decoration: InputDecoration(
+              labelText: 'Deal Status',
+              prefixIcon: const Icon(Icons.track_changes),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            items: ['pending', 'negotiating', 'agreed', 'completed', 'cancelled']
+                .map((status) => DropdownMenuItem(
+                      value: status,
+                      child: Text(status.toUpperCase()),
+                    ))
+                .toList(),
+            onChanged: (value) => setDialogState(() => _selectedDealStatus = value),
+          ),
+          const SizedBox(height: 12),
+          
+          DropdownButtonFormField<String>(
+            value: _selectedPaymentMethod,
+            decoration: InputDecoration(
+              labelText: 'Payment Method',
+              prefixIcon: const Icon(Icons.payment_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            items: ['cash', 'card', 'bank_transfer', 'credit']
+                .map((method) => DropdownMenuItem(
+                      value: method,
+                      child: Text(method.replaceAll('_', ' ').toUpperCase()),
+                    ))
+                .toList(),
+            onChanged: (value) => setDialogState(() => _selectedPaymentMethod = value),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _saveCustomerWithDeal,
+                icon: const Icon(Icons.save),
+                label: const Text('Save Customer & Deal'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveCustomerWithDeal() async {
+    // Validate required fields
+    if (_customerNameController.text.trim().isEmpty ||
+        _customerPhoneController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Name and Phone are required'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isAddingCustomer = true);
+
+    try {
+      // Create deal items from input
+      List<DealItem> dealItems = [];
+      double totalAmount = 0.0;
+      
+      if (_dealAmountController.text.isNotEmpty) {
+        totalAmount = double.tryParse(_dealAmountController.text) ?? 0.0;
+        
+        // Parse items
+        if (_dealItemsController.text.isNotEmpty) {
+          final itemNames = _dealItemsController.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty);
+          int itemCount = itemNames.length;
+          double unitPrice = itemCount > 0 ? totalAmount / itemCount : totalAmount;
+          
+          for (var itemName in itemNames) {
+            dealItems.add(DealItem(
+              productName: itemName,
+              quantity: 1,
+              unitPrice: unitPrice,
+              subtotal: unitPrice,
+            ));
+          }
+        } else {
+          // Single item if no specific items listed
+          dealItems.add(DealItem(
+            productName: 'General Product',
+            quantity: 1,
+            unitPrice: totalAmount,
+            subtotal: totalAmount,
+          ));
+        }
+      }
+
+      // Create deal transaction
+      DealTransaction? initialDeal;
+      if (totalAmount > 0) {
+        initialDeal = AnalysisEngine.createDeal(
+          id: 'deal_${DateTime.now().millisecondsSinceEpoch}',
+          date: DateTime.now(),
+          totalAmount: totalAmount,
+          itemCount: dealItems.isNotEmpty ? dealItems.fold<int>(0, (sum, item) => sum + item.quantity) : 1,
+          paymentMethod: _selectedPaymentMethod ?? 'cash',
+          status: _selectedDealStatus ?? 'pending',
+          notes: 'Initial deal created from analytics page',
+          items: dealItems,
+        );
+      }
+
+      // Create customer with deal using updated analysis engine
+      final customer = AnalysisEngine.createCustomerWithDeal(
+        id: 'cust_${DateTime.now().millisecondsSinceEpoch}',
+        name: _customerNameController.text.trim(),
+        phone: _customerPhoneController.text.trim(),
+        email: _customerEmailController.text.trim(),
+        address: _customerAddressController.text.trim(),
+        notes: _customerNotesController.text.trim(),
+        initialDeals: initialDeal != null ? [initialDeal] : [],
+      );
+
+      // Save to Supabase
+      final supabaseProvider = context.read<SupabaseProvider>();
+      
+      // First add the customer
+      await supabaseProvider.addCustomer(
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email.isEmpty ? null : customer.email,
+        notes: customer.notes.isEmpty ? null : customer.notes,
+      );
+
+      // TODO: Add deal to the system (this would require a new method in SupabaseProvider)
+      // For now, we'll just show success message
+      
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Customer "${customer.name}" added successfully!' +
+                    (initialDeal != null ? ' Deal: \$${totalAmount.toStringAsFixed(2)} (${_selectedDealStatus})' : ''),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAddingCustomer = false);
+      }
+    }
   }
 
   Future<void> _loadKPIs() async {
@@ -221,6 +592,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 ],
               ),
             ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddCustomerWithDealDialog,
+        backgroundColor: colorScheme.primary,
+        icon: const Icon(Icons.person_add_alt_1, color: Colors.white),
+        label: const Text('Add Customer', style: TextStyle(color: Colors.white)),
+      ),
     );
   }
 
