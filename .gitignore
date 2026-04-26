@@ -1,47 +1,35 @@
 ```
 # Dependencies
-.pub/
-.build/
 .dart_tool/
+.build/
+dependencies/
 
-# Logs and temp files
-*.log
-*.tmp
-
-# Environment
+# Environment variables
 .env
 .env.local
-*.env.*
+.env.*
 
-# IDE files
-.idea/
-.vscode/
-*.swp
-*.swo
+# Logs
+*.log
 
-# Build outputs
-build/
-dist/
-target/
+# Coverage
+coverage/
 
-# Cache directories
-.cache/
-.mypy_cache/
-.pytest_cache/
-.gradle/
+# Temporary files
+*.tmp
+*.temp
 
 # OS generated files
 .DS_Store
 Thumbs.db
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
+# Flutter specific
+**/pubspec.lock
+**/packages/**
+**/bin/**
+**/tool/**
+**/linux/flutter/ephemeral/**
+**/windows/flutter/ephemeral/**
+**/macos/Pods/**
+**/macos/Flutter/ephemeral/**
 ```
